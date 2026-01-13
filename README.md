@@ -39,6 +39,27 @@ Example workflow:
 - Web stamping runs entirely in the browser via the JS SDK.
 - CLI stamping/upgrade/verify uses a small Node helper (`scripts/ots-helper.mjs`) that wraps the JS SDK.
 
+## Verify OpenTimestamps locally
+Disclose stamps the bundle root digest (not the original proof file bytes), so verification must use the digest.
+
+OpenTimestamps CLI (from repo root):
+```bash
+BUNDLE_ROOT=$(jq -r '.bundle_root_sha256' ./hashes.json)
+
+node node_modules/opentimestamps/ots-cli.js info ./receipts/bundle-root.ots
+node node_modules/opentimestamps/ots-cli.js verify -d "$BUNDLE_ROOT" ./receipts/bundle-root.ots
+node node_modules/opentimestamps/ots-cli.js upgrade ./receipts/bundle-root.ots
+```
+
+Helper script (same logic used by the CLI):
+```bash
+node scripts/ots-helper.mjs info --receipt ./receipts/bundle-root.ots
+node scripts/ots-helper.mjs verify --receipt ./receipts/bundle-root.ots --digest "$BUNDLE_ROOT"
+node scripts/ots-helper.mjs upgrade --receipt ./receipts/bundle-root.ots
+```
+
+If you do not have `jq`, open `hashes.json` and copy `bundle_root_sha256` directly.
+
 ## Publish payload
 `POST /api/disclosures` expects:
 ```json
