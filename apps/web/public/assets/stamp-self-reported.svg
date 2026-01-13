@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="360" height="220" viewBox="0 0 360 220">
+  <g transform="translate(20,20) rotate(-8 160 90)">
+    <rect x="0" y="0" width="320" height="160" fill="none" stroke="#ef4444" stroke-width="10"/>
+    <text x="160" y="70" text-anchor="middle" font-family="Arial Black, Arial" font-size="34" fill="#ef4444">SELF‑REPORTED</text>
+    <text x="160" y="115" text-anchor="middle" font-family="Arial Black, Arial" font-size="26" fill="#ef4444">AI DISCLOSURE</text>
+    <text x="160" y="145" text-anchor="middle" font-family="Arial, Arial" font-size="14" fill="#ef4444">Not proof of authorship — just transparency</text>
+  </g>
+</svg>

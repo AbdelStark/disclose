@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="240" viewBox="0 0 720 240">
+  <rect x="18" y="18" width="684" height="204" fill="white" stroke="#111" stroke-width="10"/>
+  <rect x="44" y="44" width="120" height="60" fill="#1d4ed8" stroke="#111" stroke-width="8"/>
+  <text x="70" y="88" font-family="Arial Black, Arial" font-size="34" fill="white">DC</text>
+  <text x="190" y="105" font-family="Arial Black, Arial" font-size="64" fill="#111">DISCLOSE</text>
+  <text x="190" y="150" font-family="Arial, Arial" font-size="22" fill="#111">Responsible AI usage disclosure</text>
+  <text x="190" y="180" font-family="Arial, Arial" font-size="18" fill="#5c5c5c">Local-first • Proof ledger • Optional OpenTimestamps</text>
+</svg>

@@ -1,0 +1,25 @@
+# macOS
+.DS_Store
+
+# Node
+node_modules/
+.pnpm-debug.log*
+
+# Next.js
+apps/web/.next/
+apps/web/out/
+
+# Env files
+.env
+.env.*
+
+# Prisma
+apps/web/prisma/*.db
+
+# Rust
+/target/
+**/*.rs.bk
+
+# IDE
+.vscode/
+.idea/

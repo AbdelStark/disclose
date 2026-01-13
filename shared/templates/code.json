@@ -1,0 +1,33 @@
+{
+  "slug": "code",
+  "version": "1.0.0",
+  "label": "Technical Project (Code / Repo)",
+  "recommended_proof": [
+    "Pre-AI commit hash",
+    "Design notes",
+    "Issue list",
+    "Repo snapshot zip (optional)"
+  ],
+  "stages": [
+    {
+      "key": "design",
+      "label": "Design"
+    },
+    {
+      "key": "implementation",
+      "label": "Implementation"
+    },
+    {
+      "key": "testing",
+      "label": "Testing"
+    },
+    {
+      "key": "docs",
+      "label": "Documentation"
+    },
+    {
+      "key": "review",
+      "label": "Review"
+    }
+  ]
+}

@@ -1,0 +1,277 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://disclose.aislop.sh/schemas/disclosure.schema.json",
+  "title": "Disclose Manifest",
+  "type": "object",
+  "required": [
+    "version",
+    "id",
+    "created_at",
+    "template",
+    "project",
+    "assistance",
+    "proof"
+  ],
+  "properties": {
+    "version": {
+      "type": "string",
+      "description": "Manifest version, e.g. 1.0.0"
+    },
+    "id": {
+      "type": "string",
+      "description": "Stable disclosure id (uuid or content hash)"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "template": {
+      "type": "object",
+      "required": [
+        "slug",
+        "version"
+      ],
+      "properties": {
+        "slug": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        }
+      }
+    },
+    "project": {
+      "type": "object",
+      "required": [
+        "title"
+      ],
+      "properties": {
+        "title": {
+          "type": "string"
+        },
+        "author": {
+          "type": "string"
+        },
+        "links": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "audience": {
+          "type": "string",
+          "enum": [
+            "public",
+            "employer",
+            "school",
+            "publisher",
+            "private"
+          ]
+        }
+      }
+    },
+    "ai_tools": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "model": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "assistance": {
+      "type": "object",
+      "required": [
+        "global"
+      ],
+      "properties": {
+        "global": {
+          "type": "object",
+          "required": [
+            "human_percent",
+            "ai_percent"
+          ],
+          "properties": {
+            "human_percent": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "ai_percent": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100
+            }
+          }
+        },
+        "stages": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "key",
+              "label",
+              "grade",
+              "approx_ai_percent"
+            ],
+            "properties": {
+              "key": {
+                "type": "string"
+              },
+              "label": {
+                "type": "string"
+              },
+              "grade": {
+                "type": "string",
+                "enum": [
+                  "none",
+                  "light",
+                  "moderate",
+                  "heavy",
+                  "full"
+                ]
+              },
+              "approx_ai_percent": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 100
+              }
+            }
+          }
+        },
+        "notes": {
+          "type": "string"
+        }
+      }
+    },
+    "proof": {
+      "type": "object",
+      "required": [
+        "items"
+      ],
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "label",
+              "kind",
+              "sha256"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "label": {
+                "type": "string"
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "file",
+                  "git_commit",
+                  "text_note"
+                ]
+              },
+              "path": {
+                "type": "string"
+              },
+              "mime": {
+                "type": "string"
+              },
+              "size_bytes": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "sha256": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "created_before_ai": {
+                "type": "boolean"
+              },
+              "notes": {
+                "type": "string"
+              },
+              "git": {
+                "type": "object",
+                "properties": {
+                  "repo": {
+                    "type": "string"
+                  },
+                  "commit": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "bundle_root_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "timestamps": {
+      "type": "object",
+      "properties": {
+        "opentimestamps": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "none",
+                "pending",
+                "complete"
+              ]
+            },
+            "receipt_sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "receipt_filename": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "publication": {
+      "type": "object",
+      "properties": {
+        "slug": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        },
+        "published_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    }
+  },
+  "additionalProperties": false
+}

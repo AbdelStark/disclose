@@ -1,0 +1,33 @@
+{
+  "slug": "article",
+  "version": "1.0.0",
+  "label": "Article / Blog Post",
+  "recommended_proof": [
+    "Raw notes",
+    "Outline",
+    "Early draft",
+    "Voice memo (optional)"
+  ],
+  "stages": [
+    {
+      "key": "research",
+      "label": "Research"
+    },
+    {
+      "key": "outline",
+      "label": "Outline"
+    },
+    {
+      "key": "drafting",
+      "label": "Drafting"
+    },
+    {
+      "key": "editing",
+      "label": "Editing"
+    },
+    {
+      "key": "fact_checking",
+      "label": "Fact-checking"
+    }
+  ]
+}
