@@ -49,7 +49,7 @@ export type WizardDraft = {
     title: string;
     author?: string;
     links: string[];
-    audience?: \"public\" | \"employer\" | \"school\" | \"publisher\" | \"private\";
+    audience?: "public" | "employer" | "school" | "publisher" | "private";
   };
   aiTools: AiTool[];
   assistance: {
@@ -60,7 +60,7 @@ export type WizardDraft = {
   proofItems: ProofItemDraft[];
   timestamps: {
     enabled: boolean;
-    status: \"idle\" | \"stamping\" | \"pending\" | \"complete\" | \"error\";
+    status: "idle" | "stamping" | "pending" | "complete" | "error";
     receiptBytes?: Uint8Array;
     receiptFilename?: string;
   };

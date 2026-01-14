@@ -14,7 +14,7 @@ pub fn merkle_root_hex(leaves_hex: &[String]) -> Result<String> {
 
     let mut level: Vec<Vec<u8>> = leaves_hex
         .iter()
-        .map(|leaf| hex::decode(leaf))
+        .map(hex::decode)
         .collect::<Result<Vec<_>, _>>()
         .map_err(|_| anyhow!("Invalid hex in leaf"))?;
 

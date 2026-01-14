@@ -267,12 +267,9 @@ fn cli_e2e_flow() {
         .expect("verify output");
     assert!(verify_output.status.success());
     let verify_json: Value = serde_json::from_slice(&verify_output.stdout).expect("verify json");
-    assert_eq!(
-        verify_json["result"]["verified"]
-            .as_bool()
-            .expect("verified"),
-        true
-    );
+    assert!(verify_json["result"]["verified"]
+        .as_bool()
+        .expect("verified"));
 
     disclose_cmd()
         .args([

@@ -17,8 +17,9 @@ export default defineConfig({
   webServer: process.env.PLAYWRIGHT_NO_WEB_SERVER
     ? undefined
     : {
-        command: "pnpm --filter web dev -- -p 3000",
+        command: "pnpm dev -- --port 3000",
         url: baseURL,
+        cwd: "apps/web",
         timeout: 120_000,
         reuseExistingServer: !process.env.CI,
         env: {

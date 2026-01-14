@@ -165,9 +165,7 @@ fn select_template(
         if let Event::Key(key) = event::read()? {
             match key.code {
                 KeyCode::Up => {
-                    if selected > 0 {
-                        selected -= 1;
-                    }
+                    selected = selected.saturating_sub(1);
                 }
                 KeyCode::Down => {
                     if selected + 1 < templates.len() {
@@ -218,7 +216,7 @@ pub fn run_tui(root: PathBuf) -> Result<()> {
             break;
         }
         let proof_path = PathBuf::from(path);
-        let _ = attach_proof(
+        attach_proof(
             &workspace,
             vec![proof_path],
             None,
@@ -236,7 +234,7 @@ pub fn run_tui(root: PathBuf) -> Result<()> {
     )?
     .parse::<i32>()
     .unwrap_or(70);
-    let _ = update_meter(&workspace, Some(human), None, Vec::new(), false)?;
+    update_meter(&workspace, Some(human), None, Vec::new(), false)?;
 
     let stamp = read_bool(
         &mut terminal.terminal,
@@ -244,7 +242,7 @@ pub fn run_tui(root: PathBuf) -> Result<()> {
         "Create OpenTimestamps receipt?",
     )?;
     if stamp {
-        let _ = stamp_workspace(&workspace, None, None, None, false, None)?;
+        stamp_workspace(&workspace, None, None, None, false, None)?;
     }
 
     let export_path = read_text(
@@ -278,7 +276,7 @@ pub fn run_tui(root: PathBuf) -> Result<()> {
             endpoint
         };
         let runtime = tokio::runtime::Runtime::new()?;
-        let _ = runtime.block_on(publish_workspace(&workspace, &endpoint, None, true))?;
+        runtime.block_on(publish_workspace(&workspace, &endpoint, None, true))?;
     }
 
     draw_centered(
