@@ -19,7 +19,7 @@ use crate::templates::{get_template, Template};
 use crate::workspace::Workspace;
 use crate::validation::validate_manifest;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum IncludeProof {
     None,
     Hashes,
@@ -330,8 +330,10 @@ pub fn stamp_workspace(
     let hashes = build_hashes(&manifest)?;
     let bundle_root = digest.unwrap_or(hashes.bundle_root_sha256);
 
-    workspace.ensure_receipts_dir()?;
-    let receipt_path = out.unwrap_or_else(|| workspace.receipts_dir().join("bundle-root.ots"));
+    let receipt_path = resolve_receipt_path(workspace, out);
+    if let Some(parent) = receipt_path.parent() {
+        fs::create_dir_all(parent)?;
+    }
     ots::stamp(&bundle_root, &receipt_path, calendars.as_deref(), timeout)?;
 
     let receipt_sha = ots::receipt_sha256(&receipt_path)?;
@@ -362,7 +364,7 @@ pub fn stamp_workspace(
 
 pub fn upgrade_receipt(workspace: &Workspace, receipt: Option<PathBuf>) -> Result<bool> {
     let mut manifest = DisclosureManifest::read_from(&workspace.disclosure_path())?;
-    let receipt_path = receipt.unwrap_or_else(|| workspace.receipts_dir().join("bundle-root.ots"));
+    let receipt_path = resolve_receipt_path(workspace, receipt);
     let changed = ots::upgrade(&receipt_path)?;
     if let Some(timestamps) = &mut manifest.timestamps {
         if let Some(ots_info) = &mut timestamps.opentimestamps {
@@ -379,12 +381,12 @@ pub fn upgrade_receipt(workspace: &Workspace, receipt: Option<PathBuf>) -> Resul
 pub fn verify_receipt(workspace: &Workspace, receipt: Option<PathBuf>, timeout: Option<u64>) -> Result<bool> {
     let manifest = DisclosureManifest::read_from(&workspace.disclosure_path())?;
     let hashes = build_hashes(&manifest)?;
-    let receipt_path = receipt.unwrap_or_else(|| workspace.receipts_dir().join("bundle-root.ots"));
+    let receipt_path = resolve_receipt_path(workspace, receipt);
     ots::verify(&receipt_path, &hashes.bundle_root_sha256, timeout)
 }
 
 pub fn info_receipt(workspace: &Workspace, receipt: Option<PathBuf>) -> Result<String> {
-    let receipt_path = receipt.unwrap_or_else(|| workspace.receipts_dir().join("bundle-root.ots"));
+    let receipt_path = resolve_receipt_path(workspace, receipt);
     ots::info(&receipt_path)
 }
 
@@ -437,7 +439,7 @@ pub fn export_bundle(
         ExportFormat::Zip => {
             let file = fs::File::create(&bundle_path)?;
             let mut zip = zip::ZipWriter::new(file);
-            let options = zip::write::FileOptions::default();
+            let options = zip::write::FileOptions::<()>::default();
 
             zip.start_file("disclosure.json", options)?;
             zip.write_all(serde_json::to_string_pretty(&manifest)?.as_bytes())?;
@@ -520,12 +522,22 @@ pub async fn publish_workspace(
     Ok((response.slug, response.url))
 }
 
+#[allow(dead_code)]
 pub fn load_template_from_manifest(manifest: &DisclosureManifest) -> Result<Template> {
     get_template(&manifest.template.slug)
 }
 
+#[allow(dead_code)]
 pub fn recompute_root(manifest: &mut DisclosureManifest) -> Result<HashesJson> {
     let hashes = build_hashes(manifest)?;
     manifest.proof.bundle_root_sha256 = Some(hashes.bundle_root_sha256.clone());
     Ok(hashes)
+}
+
+fn resolve_receipt_path(workspace: &Workspace, receipt: Option<PathBuf>) -> PathBuf {
+    match receipt {
+        Some(path) if path.is_absolute() => path,
+        Some(path) => workspace.root_path().join(path),
+        None => workspace.receipts_dir().join("bundle-root.ots"),
+    }
 }

@@ -15,6 +15,7 @@ pub struct Template {
     pub slug: String,
     pub version: String,
     pub label: String,
+    #[allow(dead_code)]
     #[serde(default)]
     pub recommended_proof: Vec<String>,
     pub stages: Vec<TemplateStage>,

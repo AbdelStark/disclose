@@ -22,6 +22,7 @@ impl Workspace {
         self.root.join("receipts")
     }
 
+    #[allow(dead_code)]
     pub fn proof_dir(&self) -> PathBuf {
         self.root.join("proof")
     }
@@ -38,10 +39,12 @@ impl Workspace {
         std::fs::create_dir_all(self.state_dir())
     }
 
+    #[allow(dead_code)]
     pub fn ensure_receipts_dir(&self) -> std::io::Result<()> {
         std::fs::create_dir_all(self.receipts_dir())
     }
 
+    #[allow(dead_code)]
     pub fn ensure_proof_dir(&self) -> std::io::Result<()> {
         std::fs::create_dir_all(self.proof_dir())
     }

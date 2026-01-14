@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
-import * as opentimestamps from "opentimestamps";
+import OpenTimestamps from "opentimestamps";
 
-const { OpenTimestamps, DetachedTimestampFile, Ops } = opentimestamps;
+const { DetachedTimestampFile, Ops } = OpenTimestamps;
 
 function parseArgs(argv) {
   const args = {};
@@ -24,6 +24,7 @@ function parseArgs(argv) {
 async function main() {
   const [command, ...rest] = process.argv.slice(2);
   const args = parseArgs(rest);
+  const mock = process.env.DISCLOSE_OTS_MOCK === "1";
 
   if (!command) {
     console.error("Missing command");
@@ -40,10 +41,15 @@ async function main() {
     }
     const hash = Buffer.from(digest, "hex");
     const detached = DetachedTimestampFile.fromHash(new Ops.OpSHA256(), hash);
-    await OpenTimestamps.stamp(detached, calendars);
+    if (mock) {
+      const pending = new OpenTimestamps.Notary.PendingAttestation("mock://local-calendar");
+      detached.timestamp.attestations.push(pending);
+    } else {
+      await OpenTimestamps.stamp(detached, calendars);
+    }
     const bytes = detached.serializeToBytes();
     await fs.writeFile(out, Buffer.from(bytes));
-    console.log(JSON.stringify({ ok: true, receipt_path: out }));
+    console.log(JSON.stringify({ ok: true, receipt_path: out, mock }));
     return;
   }
 
@@ -52,6 +58,10 @@ async function main() {
     if (!receipt) {
       console.error("Missing --receipt");
       process.exit(1);
+    }
+    if (mock) {
+      console.log(JSON.stringify({ ok: true, changed: false, mock }));
+      return;
     }
     const file = await fs.readFile(receipt);
     const detached = DetachedTimestampFile.deserialize(file);
@@ -87,6 +97,12 @@ async function main() {
     const file = await fs.readFile(receipt);
     const detachedOts = DetachedTimestampFile.deserialize(file);
     const hash = Buffer.from(digest, "hex");
+    if (mock) {
+      const receiptDigest = Buffer.from(detachedOts.fileDigest()).toString("hex");
+      const verified = receiptDigest.toLowerCase() === digest.toLowerCase();
+      console.log(JSON.stringify({ ok: true, verified, result: { mock: true } }));
+      return;
+    }
     const detached = DetachedTimestampFile.fromHash(new Ops.OpSHA256(), hash);
     const options = {
       ignoreBitcoinNode: true,

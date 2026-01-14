@@ -21,6 +21,7 @@ fn run_helper(args: &[String]) -> Result<String> {
 #[derive(Debug, Deserialize)]
 struct StampResult {
     ok: bool,
+    #[allow(dead_code)]
     receipt_path: Option<String>,
 }
 
@@ -40,6 +41,7 @@ struct InfoResult {
 struct VerifyResult {
     ok: bool,
     verified: bool,
+    #[allow(dead_code)]
     result: Option<serde_json::Value>,
 }
 

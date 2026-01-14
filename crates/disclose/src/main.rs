@@ -172,7 +172,7 @@ fn error_code(err: &anyhow::Error) -> i32 {
 }
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<()> {
     let cli = Cli::parse();
     let result = match cli.command {
         Commands::Init {
@@ -244,8 +244,11 @@ async fn main() {
             let workspace = resolve_workspace(cli.path)?;
             let parsed_stages = stage
                 .into_iter()
-                .filter_map(|entry| entry.split_once('='))
-                .map(|(key, grade)| (key.to_string(), grade.to_string()))
+                .filter_map(|entry| {
+                    entry
+                        .split_once('=')
+                        .map(|(key, grade)| (key.to_string(), grade.to_string()))
+                })
                 .collect();
             let hashes = update_meter(&workspace, global_human, global_ai, parsed_stages, allow_unknown_stages)?;
             if cli.json {
@@ -385,4 +388,6 @@ async fn main() {
         let code = error_code(&err);
         std::process::exit(code);
     }
+
+    Ok(())
 }
