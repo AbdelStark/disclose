@@ -182,210 +182,231 @@ async fn main() {
     let cli = Cli::parse();
     let result: Result<()> = async {
         match cli.command {
-        Commands::Init {
-            template,
-            title,
-            author,
-            out,
-            link,
-        } => {
-            let workspace = init_workspace(out.clone(), &template, &title, author, link)?;
-            if cli.json {
-                output_json(
-                    "init",
-                    workspace.root_path().to_string_lossy().as_ref(),
-                    json!({
-                        "template": template,
-                        "disclosure": workspace.disclosure_path().to_string_lossy()
-                    }),
-                );
-            } else if !cli.quiet {
-                println!("Created disclosure at {}", workspace.root_path().display());
+            Commands::Init {
+                template,
+                title,
+                author,
+                out,
+                link,
+            } => {
+                let workspace = init_workspace(out.clone(), &template, &title, author, link)?;
+                if cli.json {
+                    output_json(
+                        "init",
+                        workspace.root_path().to_string_lossy().as_ref(),
+                        json!({
+                            "template": template,
+                            "disclosure": workspace.disclosure_path().to_string_lossy()
+                        }),
+                    );
+                } else if !cli.quiet {
+                    println!("Created disclosure at {}", workspace.root_path().display());
+                }
+                Ok(())
             }
-            Ok(())
-        }
-        Commands::Attach {
-            proof,
-            label,
-            note,
-            created_before_ai,
-            not_sure,
-            copy_into,
-            git,
-            commit,
-        } => {
-            let workspace = resolve_workspace(cli.path)?;
-            if proof.is_empty() && git.is_none() {
-                return Err(anyhow!("Provide --proof or --git/--commit"));
+            Commands::Attach {
+                proof,
+                label,
+                note,
+                created_before_ai,
+                not_sure,
+                copy_into,
+                git,
+                commit,
+            } => {
+                let workspace = resolve_workspace(cli.path)?;
+                if proof.is_empty() && git.is_none() {
+                    return Err(anyhow!("Provide --proof or --git/--commit"));
+                }
+                let created = if created_before_ai {
+                    Some(true)
+                } else if not_sure {
+                    Some(false)
+                } else {
+                    None
+                };
+                let git_tuple = match (git, commit) {
+                    (Some(repo), Some(commit)) => Some((repo, commit)),
+                    (Some(_), None) => {
+                        return Err(anyhow!("--commit is required when using --git"))
+                    }
+                    _ => None,
+                };
+                let hashes = attach_proof(
+                    &workspace, proof, label, note, created, copy_into, git_tuple,
+                )?;
+                if cli.json {
+                    output_json(
+                        "attach",
+                        workspace.root_path().to_string_lossy().as_ref(),
+                        json!({ "bundle_root": hashes.bundle_root_sha256 }),
+                    );
+                } else if !cli.quiet {
+                    println!(
+                        "Attached proof items. Bundle root: {}",
+                        hashes.bundle_root_sha256
+                    );
+                }
+                Ok(())
             }
-            let created = if created_before_ai {
-                Some(true)
-            } else if not_sure {
-                Some(false)
-            } else {
-                None
-            };
-            let git_tuple = match (git, commit) {
-                (Some(repo), Some(commit)) => Some((repo, commit)),
-                (Some(_), None) => return Err(anyhow!("--commit is required when using --git")),
-                _ => None,
-            };
-            let hashes = attach_proof(&workspace, proof, label, note, created, copy_into, git_tuple)?;
-            if cli.json {
-                output_json(
-                    "attach",
-                    workspace.root_path().to_string_lossy().as_ref(),
-                    json!({ "bundle_root": hashes.bundle_root_sha256 }),
-                );
-            } else if !cli.quiet {
-                println!("Attached proof items. Bundle root: {}", hashes.bundle_root_sha256);
+            Commands::Meter {
+                global_human,
+                global_ai,
+                stage,
+                allow_unknown_stages,
+            } => {
+                let workspace = resolve_workspace(cli.path)?;
+                let parsed_stages = stage
+                    .into_iter()
+                    .filter_map(|entry| {
+                        entry
+                            .split_once('=')
+                            .map(|(key, grade)| (key.to_string(), grade.to_string()))
+                    })
+                    .collect();
+                let hashes = update_meter(
+                    &workspace,
+                    global_human,
+                    global_ai,
+                    parsed_stages,
+                    allow_unknown_stages,
+                )?;
+                if cli.json {
+                    output_json(
+                        "meter",
+                        workspace.root_path().to_string_lossy().as_ref(),
+                        json!({ "bundle_root": hashes.bundle_root_sha256 }),
+                    );
+                } else if !cli.quiet {
+                    println!(
+                        "Updated assistance meter. Bundle root: {}",
+                        hashes.bundle_root_sha256
+                    );
+                }
+                Ok(())
             }
-            Ok(())
-        }
-        Commands::Meter {
-            global_human,
-            global_ai,
-            stage,
-            allow_unknown_stages,
-        } => {
-            let workspace = resolve_workspace(cli.path)?;
-            let parsed_stages = stage
-                .into_iter()
-                .filter_map(|entry| {
-                    entry
-                        .split_once('=')
-                        .map(|(key, grade)| (key.to_string(), grade.to_string()))
-                })
-                .collect();
-            let hashes = update_meter(&workspace, global_human, global_ai, parsed_stages, allow_unknown_stages)?;
-            if cli.json {
-                output_json(
-                    "meter",
-                    workspace.root_path().to_string_lossy().as_ref(),
-                    json!({ "bundle_root": hashes.bundle_root_sha256 }),
-                );
-            } else if !cli.quiet {
-                println!("Updated assistance meter. Bundle root: {}", hashes.bundle_root_sha256);
+            Commands::Stamp {
+                ots,
+                digest,
+                calendars,
+                out,
+                upgrade,
+                timeout,
+            } => {
+                if !ots {
+                    return Err(anyhow!("--ots flag is required to stamp"));
+                }
+                let workspace = resolve_workspace(cli.path)?;
+                stamp_workspace(&workspace, digest, calendars, Some(out), upgrade, timeout)?;
+                if cli.json {
+                    output_json(
+                        "stamp",
+                        workspace.root_path().to_string_lossy().as_ref(),
+                        json!({ "receipt": "bundle-root.ots" }),
+                    );
+                } else if !cli.quiet {
+                    println!("Stamped disclosure. Receipt saved.");
+                }
+                Ok(())
             }
-            Ok(())
-        }
-        Commands::Stamp {
-            ots,
-            digest,
-            calendars,
-            out,
-            upgrade,
-            timeout,
-        } => {
-            if !ots {
-                return Err(anyhow!("--ots flag is required to stamp"));
+            Commands::Upgrade { receipt } => {
+                let workspace = resolve_workspace(cli.path)?;
+                let changed = upgrade_receipt(&workspace, receipt)?;
+                if cli.json {
+                    output_json(
+                        "upgrade",
+                        workspace.root_path().to_string_lossy().as_ref(),
+                        json!({ "upgraded": changed }),
+                    );
+                } else if !cli.quiet {
+                    println!("Receipt upgraded: {}", changed);
+                }
+                Ok(())
             }
-            let workspace = resolve_workspace(cli.path)?;
-            stamp_workspace(&workspace, digest, calendars, Some(out), upgrade, timeout)?;
-            if cli.json {
-                output_json(
-                    "stamp",
-                    workspace.root_path().to_string_lossy().as_ref(),
-                    json!({ "receipt": "bundle-root.ots" }),
-                );
-            } else if !cli.quiet {
-                println!("Stamped disclosure. Receipt saved.");
+            Commands::Verify {
+                receipt, timeout, ..
+            } => {
+                let workspace = resolve_workspace(cli.path)?;
+                let ok = verify_receipt(&workspace, receipt, timeout)?;
+                if cli.json {
+                    output_json(
+                        "verify",
+                        workspace.root_path().to_string_lossy().as_ref(),
+                        json!({ "verified": ok }),
+                    );
+                } else if !cli.quiet {
+                    println!("Verification result: {}", ok);
+                }
+                if !ok {
+                    std::process::exit(3);
+                }
+                Ok(())
             }
-            Ok(())
-        }
-        Commands::Upgrade { receipt } => {
-            let workspace = resolve_workspace(cli.path)?;
-            let changed = upgrade_receipt(&workspace, receipt)?;
-            if cli.json {
-                output_json(
-                    "upgrade",
-                    workspace.root_path().to_string_lossy().as_ref(),
-                    json!({ "upgraded": changed }),
-                );
-            } else if !cli.quiet {
-                println!("Receipt upgraded: {}", changed);
+            Commands::Info { receipt } => {
+                let workspace = resolve_workspace(cli.path)?;
+                let info = info_receipt(&workspace, receipt)?;
+                if cli.json {
+                    output_json(
+                        "info",
+                        workspace.root_path().to_string_lossy().as_ref(),
+                        json!({ "info": info }),
+                    );
+                } else if !cli.quiet {
+                    println!("{}", info);
+                }
+                Ok(())
             }
-            Ok(())
-        }
-        Commands::Verify {
-            receipt,
-            timeout,
-            ..
-        } => {
-            let workspace = resolve_workspace(cli.path)?;
-            let ok = verify_receipt(&workspace, receipt, timeout)?;
-            if cli.json {
-                output_json(
-                    "verify",
-                    workspace.root_path().to_string_lossy().as_ref(),
-                    json!({ "verified": ok }),
-                );
-            } else if !cli.quiet {
-                println!("Verification result: {}", ok);
+            Commands::Export {
+                bundle,
+                include_proof,
+                include_receipts,
+                format,
+            } => {
+                let workspace = resolve_workspace(cli.path)?;
+                let include_receipts = matches!(include_receipts.as_str(), "yes" | "true");
+                export_bundle(
+                    &workspace,
+                    bundle.clone(),
+                    include_proof,
+                    include_receipts,
+                    format,
+                )?;
+                if cli.json {
+                    output_json(
+                        "export",
+                        workspace.root_path().to_string_lossy().as_ref(),
+                        json!({ "bundle": bundle.to_string_lossy() }),
+                    );
+                } else if !cli.quiet {
+                    println!("Exported bundle to {}", bundle.display());
+                }
+                Ok(())
             }
-            if !ok {
-                std::process::exit(3);
+            Commands::Publish {
+                endpoint,
+                token,
+                include_receipts,
+            } => {
+                let workspace = resolve_workspace(cli.path)?;
+                let include_receipts = matches!(include_receipts.as_str(), "yes" | "true");
+                let (slug, url) =
+                    publish_workspace(&workspace, &endpoint, token, include_receipts).await?;
+                if cli.json {
+                    output_json(
+                        "publish",
+                        workspace.root_path().to_string_lossy().as_ref(),
+                        json!({ "slug": slug, "url": url }),
+                    );
+                } else if !cli.quiet {
+                    println!("Published: {}", url);
+                }
+                Ok(())
             }
-            Ok(())
-        }
-        Commands::Info { receipt } => {
-            let workspace = resolve_workspace(cli.path)?;
-            let info = info_receipt(&workspace, receipt)?;
-            if cli.json {
-                output_json(
-                    "info",
-                    workspace.root_path().to_string_lossy().as_ref(),
-                    json!({ "info": info }),
-                );
-            } else if !cli.quiet {
-                println!("{}", info);
+            Commands::Tui => {
+                let root = cli.path.unwrap_or(std::env::current_dir()?);
+                tui::run_tui(root)?;
+                Ok(())
             }
-            Ok(())
-        }
-        Commands::Export {
-            bundle,
-            include_proof,
-            include_receipts,
-            format,
-        } => {
-            let workspace = resolve_workspace(cli.path)?;
-            let include_receipts = matches!(include_receipts.as_str(), "yes" | "true");
-            export_bundle(&workspace, bundle.clone(), include_proof, include_receipts, format)?;
-            if cli.json {
-                output_json(
-                    "export",
-                    workspace.root_path().to_string_lossy().as_ref(),
-                    json!({ "bundle": bundle.to_string_lossy() }),
-                );
-            } else if !cli.quiet {
-                println!("Exported bundle to {}", bundle.display());
-            }
-            Ok(())
-        }
-        Commands::Publish {
-            endpoint,
-            token,
-            include_receipts,
-        } => {
-            let workspace = resolve_workspace(cli.path)?;
-            let include_receipts = matches!(include_receipts.as_str(), "yes" | "true");
-            let (slug, url) = publish_workspace(&workspace, &endpoint, token, include_receipts).await?;
-            if cli.json {
-                output_json(
-                    "publish",
-                    workspace.root_path().to_string_lossy().as_ref(),
-                    json!({ "slug": slug, "url": url }),
-                );
-            } else if !cli.quiet {
-                println!("Published: {}", url);
-            }
-            Ok(())
-        }
-        Commands::Tui => {
-            let root = cli.path.unwrap_or(std::env::current_dir()?);
-            tui::run_tui(root)?;
-            Ok(())
-        }
         }
     }
     .await;

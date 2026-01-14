@@ -1,7 +1,9 @@
 use anyhow::{anyhow, Result};
 use crossterm::event::{self, Event, KeyCode};
-use crossterm::terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen};
 use crossterm::execute;
+use crossterm::terminal::{
+    disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen,
+};
 use ratatui::backend::CrosstermBackend;
 use ratatui::layout::{Alignment, Constraint, Direction, Layout};
 use ratatui::style::{Color, Style};
@@ -11,7 +13,10 @@ use ratatui::Terminal;
 use std::io::{self, Stdout};
 use std::path::PathBuf;
 
-use crate::commands::{attach_proof, export_bundle, init_workspace, publish_workspace, stamp_workspace, update_meter, ExportFormat, IncludeProof};
+use crate::commands::{
+    attach_proof, export_bundle, init_workspace, publish_workspace, stamp_workspace, update_meter,
+    ExportFormat, IncludeProof,
+};
 use crate::templates::{load_templates, Template};
 
 struct TuiTerminal {
@@ -36,7 +41,11 @@ impl TuiTerminal {
     }
 }
 
-fn draw_centered<'a>(terminal: &mut Terminal<CrosstermBackend<Stdout>>, title: &'a str, body: Vec<Line<'a>>) -> Result<()> {
+fn draw_centered<'a>(
+    terminal: &mut Terminal<CrosstermBackend<Stdout>>,
+    title: &'a str,
+    body: Vec<Line<'a>>,
+) -> Result<()> {
     terminal.draw(|frame| {
         let size = frame.size();
         let block = Block::default().title(title).borders(Borders::ALL);
@@ -50,7 +59,11 @@ fn draw_centered<'a>(terminal: &mut Terminal<CrosstermBackend<Stdout>>, title: &
     Ok(())
 }
 
-fn read_text(terminal: &mut Terminal<CrosstermBackend<Stdout>>, title: &str, prompt: &str) -> Result<String> {
+fn read_text(
+    terminal: &mut Terminal<CrosstermBackend<Stdout>>,
+    title: &str,
+    prompt: &str,
+) -> Result<String> {
     let mut input = String::new();
     loop {
         terminal.draw(|frame| {
@@ -62,7 +75,11 @@ fn read_text(terminal: &mut Terminal<CrosstermBackend<Stdout>>, title: &str, pro
             let chunks = Layout::default()
                 .direction(Direction::Vertical)
                 .margin(2)
-                .constraints([Constraint::Length(2), Constraint::Length(2), Constraint::Min(1)])
+                .constraints([
+                    Constraint::Length(2),
+                    Constraint::Length(2),
+                    Constraint::Min(1),
+                ])
                 .split(inner);
 
             frame.render_widget(Paragraph::new(prompt), chunks[0]);
@@ -90,7 +107,11 @@ fn read_text(terminal: &mut Terminal<CrosstermBackend<Stdout>>, title: &str, pro
     Ok(input.trim().to_string())
 }
 
-fn read_bool(terminal: &mut Terminal<CrosstermBackend<Stdout>>, title: &str, prompt: &str) -> Result<bool> {
+fn read_bool(
+    terminal: &mut Terminal<CrosstermBackend<Stdout>>,
+    title: &str,
+    prompt: &str,
+) -> Result<bool> {
     loop {
         draw_centered(
             terminal,
@@ -107,12 +128,17 @@ fn read_bool(terminal: &mut Terminal<CrosstermBackend<Stdout>>, title: &str, pro
     }
 }
 
-fn select_template(terminal: &mut Terminal<CrosstermBackend<Stdout>>, templates: &[Template]) -> Result<Template> {
+fn select_template(
+    terminal: &mut Terminal<CrosstermBackend<Stdout>>,
+    templates: &[Template],
+) -> Result<Template> {
     let mut selected = 0usize;
     loop {
         terminal.draw(|frame| {
             let size = frame.size();
-            let block = Block::default().title("Select Template").borders(Borders::ALL);
+            let block = Block::default()
+                .title("Select Template")
+                .borders(Borders::ALL);
             let inner = block.inner(size);
             frame.render_widget(block, size);
 
@@ -174,7 +200,11 @@ pub fn run_tui(root: PathBuf) -> Result<()> {
         workspace_dir,
         &template.slug,
         &title,
-        if author.is_empty() { None } else { Some(author) },
+        if author.is_empty() {
+            None
+        } else {
+            Some(author)
+        },
         Vec::new(),
     )?;
 
@@ -227,7 +257,13 @@ pub fn run_tui(root: PathBuf) -> Result<()> {
     } else {
         PathBuf::from(export_path)
     };
-    export_bundle(&workspace, bundle.clone(), IncludeProof::Hashes, true, ExportFormat::Zip)?;
+    export_bundle(
+        &workspace,
+        bundle.clone(),
+        IncludeProof::Hashes,
+        true,
+        ExportFormat::Zip,
+    )?;
 
     let publish = read_bool(&mut terminal.terminal, "Publish", "Publish disclosure now?")?;
     if publish {

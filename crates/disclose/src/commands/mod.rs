@@ -11,14 +11,14 @@ use uuid::Uuid;
 use crate::errors::ValidationError;
 use crate::hashing::{build_hashes, hash_file, write_hashes, HashesJson};
 use crate::manifest::{
-    AssistanceGrade, AssistanceInfo, AssistanceStage, DisclosureManifest, OpenTimestampsInfo, ProofItem,
-    ProofKind, ProofInfo, ProjectInfo, TemplateRef, TimestampInfo,
+    AssistanceGrade, AssistanceInfo, AssistanceStage, DisclosureManifest, OpenTimestampsInfo,
+    ProjectInfo, ProofInfo, ProofItem, ProofKind, TemplateRef, TimestampInfo,
 };
 use crate::ots;
 use crate::publish::{publish_disclosure, ReceiptPayload};
 use crate::templates::{get_template, Template};
-use crate::workspace::Workspace;
 use crate::validation::validate_manifest;
+use crate::workspace::Workspace;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum IncludeProof {
@@ -127,7 +127,10 @@ pub fn init_workspace(
         "version": 1,
         "status": "draft"
     });
-    fs::write(workspace.state_path(), serde_json::to_string_pretty(&state)?)?;
+    fs::write(
+        workspace.state_path(),
+        serde_json::to_string_pretty(&state)?,
+    )?;
 
     Ok(workspace)
 }
@@ -164,8 +167,8 @@ fn build_file_proof(
         .first_raw()
         .map(|m| m.to_string());
 
-    let relative_path = pathdiff::diff_paths(&target_path, workspace.root_path())
-        .unwrap_or(target_path.clone());
+    let relative_path =
+        pathdiff::diff_paths(&target_path, workspace.root_path()).unwrap_or(target_path.clone());
 
     Ok(ProofItem {
         id: format!("p_{}", Uuid::new_v4()),
@@ -186,7 +189,9 @@ fn build_git_proof(repo: &str, commit: &str, label: Option<&str>, note: Option<&
     let sha256 = crate::hashing::sha256_hex_bytes(payload.as_bytes());
     ProofItem {
         id: format!("p_{}", Uuid::new_v4()),
-        label: label.map(|l| l.to_string()).unwrap_or_else(|| "Git commit".to_string()),
+        label: label
+            .map(|l| l.to_string())
+            .unwrap_or_else(|| "Git commit".to_string()),
         kind: ProofKind::GitCommit,
         path: Some(payload.clone()),
         mime: None,
@@ -215,10 +220,12 @@ pub fn attach_proof(
     let copy_dir_opt = copy_into.as_deref();
 
     if let Some((repo, commit)) = git {
-        manifest
-            .proof
-            .items
-            .push(build_git_proof(&repo, &commit, label.as_deref(), note.as_deref()));
+        manifest.proof.items.push(build_git_proof(
+            &repo,
+            &commit,
+            label.as_deref(),
+            note.as_deref(),
+        ));
     }
 
     for path in proof_paths {
@@ -343,7 +350,9 @@ pub fn stamp_workspace(
             enabled: Some(true),
             status: Some("pending".to_string()),
             receipt_sha256: Some(receipt_sha),
-            receipt_filename: receipt_path.file_name().map(|n| n.to_string_lossy().to_string()),
+            receipt_filename: receipt_path
+                .file_name()
+                .map(|n| n.to_string_lossy().to_string()),
         }),
     });
 
@@ -379,7 +388,11 @@ pub fn upgrade_receipt(workspace: &Workspace, receipt: Option<PathBuf>) -> Resul
     Ok(changed)
 }
 
-pub fn verify_receipt(workspace: &Workspace, receipt: Option<PathBuf>, timeout: Option<u64>) -> Result<bool> {
+pub fn verify_receipt(
+    workspace: &Workspace,
+    receipt: Option<PathBuf>,
+    timeout: Option<u64>,
+) -> Result<bool> {
     let manifest = DisclosureManifest::read_from(&workspace.disclosure_path())?;
     let hashes = build_hashes(&manifest)?;
     let receipt_path = resolve_receipt_path(workspace, receipt);
@@ -405,9 +418,15 @@ pub fn export_bundle(
     match format {
         ExportFormat::Dir => {
             fs::create_dir_all(&bundle_path)?;
-            fs::write(bundle_path.join("disclosure.json"), serde_json::to_string_pretty(&manifest)?)?;
+            fs::write(
+                bundle_path.join("disclosure.json"),
+                serde_json::to_string_pretty(&manifest)?,
+            )?;
             if include_proof != IncludeProof::None {
-                fs::write(bundle_path.join("hashes.json"), serde_json::to_string_pretty(&hashes)?)?;
+                fs::write(
+                    bundle_path.join("hashes.json"),
+                    serde_json::to_string_pretty(&hashes)?,
+                )?;
             }
             if include_receipts && receipt_dir.exists() {
                 let dest = bundle_path.join("receipts");
@@ -513,7 +532,8 @@ pub async fn publish_workspace(
         Vec::new()
     };
 
-    let response = publish_disclosure(endpoint, token.as_deref(), &manifest, &hashes, receipts).await?;
+    let response =
+        publish_disclosure(endpoint, token.as_deref(), &manifest, &hashes, receipts).await?;
     manifest.publication = Some(crate::manifest::PublicationInfo {
         slug: Some(response.slug.clone()),
         url: Some(response.url.clone()),

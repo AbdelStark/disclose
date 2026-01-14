@@ -52,9 +52,7 @@ pub fn hash_file(path: &Path) -> Result<String> {
 
 fn canonicalize_value(value: &Value) -> Value {
     match value {
-        Value::Array(items) => {
-            Value::Array(items.iter().map(canonicalize_value).collect())
-        }
+        Value::Array(items) => Value::Array(items.iter().map(canonicalize_value).collect()),
         Value::Object(map) => {
             let mut keys: Vec<String> = map.keys().cloned().collect();
             keys.sort();
@@ -92,7 +90,12 @@ pub fn manifest_hash(manifest: &DisclosureManifest) -> Result<String> {
 
 pub fn build_hashes(manifest: &DisclosureManifest) -> Result<HashesJson> {
     let manifest_sha = manifest_hash(manifest)?;
-    let proof_hashes: Vec<String> = manifest.proof.items.iter().map(|item| item.sha256.clone()).collect();
+    let proof_hashes: Vec<String> = manifest
+        .proof
+        .items
+        .iter()
+        .map(|item| item.sha256.clone())
+        .collect();
     if proof_hashes.iter().any(|h| h.is_empty()) {
         return Err(anyhow!("Missing proof hashes"));
     }

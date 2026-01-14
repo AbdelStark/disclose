@@ -57,7 +57,9 @@ fn is_hex(value: &str, len: usize) -> bool {
 }
 
 fn find_subslice(haystack: &[u8], needle: &[u8]) -> Option<usize> {
-    haystack.windows(needle.len()).position(|window| window == needle)
+    haystack
+        .windows(needle.len())
+        .position(|window| window == needle)
 }
 
 fn parse_content_length(headers: &[u8]) -> Option<usize> {
@@ -83,7 +85,10 @@ fn read_http_request(stream: &mut TcpStream) -> (String, Vec<u8>) {
             Ok(0) => break,
             Ok(n) => n,
             Err(err) => {
-                if matches!(err.kind(), std::io::ErrorKind::WouldBlock | std::io::ErrorKind::TimedOut) {
+                if matches!(
+                    err.kind(),
+                    std::io::ErrorKind::WouldBlock | std::io::ErrorKind::TimedOut
+                ) {
                     break;
                 }
                 panic!("read error: {err}");
@@ -118,9 +123,7 @@ fn read_http_request(stream: &mut TcpStream) -> (String, Vec<u8>) {
 
 fn spawn_publish_server() -> (String, mpsc::Receiver<Value>, thread::JoinHandle<()>) {
     let listener = TcpListener::bind("127.0.0.1:0").expect("bind server");
-    listener
-        .set_nonblocking(true)
-        .expect("set nonblocking");
+    listener.set_nonblocking(true).expect("set nonblocking");
     let addr = listener.local_addr().expect("local addr");
     let endpoint = format!("http://{}", addr);
     let (tx, rx) = mpsc::channel();
@@ -137,7 +140,8 @@ fn spawn_publish_server() -> (String, mpsc::Receiver<Value>, thread::JoinHandle<
                     assert_eq!(method, "POST");
                     assert_eq!(path, "/api/disclosures");
 
-                    let payload: Value = serde_json::from_slice(&body).expect("publish payload json");
+                    let payload: Value =
+                        serde_json::from_slice(&body).expect("publish payload json");
                     let _ = tx.send(payload);
 
                     let response_body =
@@ -212,18 +216,15 @@ fn cli_e2e_flow() {
         .success();
 
     let hashes = read_json(&workspace.join("hashes.json"));
-    let bundle_root = hashes["bundle_root_sha256"]
-        .as_str()
-        .expect("bundle root");
-    assert_eq!(
-        hashes["algo"].as_str().expect("algo"),
-        "sha256+merkle/v1"
-    );
+    let bundle_root = hashes["bundle_root_sha256"].as_str().expect("bundle root");
+    assert_eq!(hashes["algo"].as_str().expect("algo"), "sha256+merkle/v1");
     assert!(is_hex(bundle_root, 64));
     assert_eq!(hashes["proof"].as_array().expect("proof array").len(), 2);
     let manifest = read_json(&workspace.join("disclosure.json"));
     assert_eq!(
-        manifest["proof"]["bundle_root_sha256"].as_str().expect("manifest root"),
+        manifest["proof"]["bundle_root_sha256"]
+            .as_str()
+            .expect("manifest root"),
         bundle_root
     );
 
@@ -265,10 +266,11 @@ fn cli_e2e_flow() {
         .output()
         .expect("verify output");
     assert!(verify_output.status.success());
-    let verify_json: Value =
-        serde_json::from_slice(&verify_output.stdout).expect("verify json");
+    let verify_json: Value = serde_json::from_slice(&verify_output.stdout).expect("verify json");
     assert_eq!(
-        verify_json["result"]["verified"].as_bool().expect("verified"),
+        verify_json["result"]["verified"]
+            .as_bool()
+            .expect("verified"),
         true
     );
 
@@ -328,11 +330,13 @@ fn cli_e2e_flow() {
     assert!(payload.get("hashes").is_some());
     let receipts = payload["receipts"].as_array().expect("receipts array");
     assert_eq!(receipts.len(), 1);
-    assert!(receipts[0]["bytes_base64"]
-        .as_str()
-        .expect("receipt bytes")
-        .len()
-        > 10);
+    assert!(
+        receipts[0]["bytes_base64"]
+            .as_str()
+            .expect("receipt bytes")
+            .len()
+            > 10
+    );
 
     handle.join().expect("server thread");
 
@@ -409,9 +413,7 @@ fn cli_e2e_verify_mismatch() {
         .success();
 
     let hashes = read_json(&workspace.join("hashes.json"));
-    let bundle_root = hashes["bundle_root_sha256"]
-        .as_str()
-        .expect("bundle root");
+    let bundle_root = hashes["bundle_root_sha256"].as_str().expect("bundle root");
     let bad_digest = "00".repeat(32);
     assert_ne!(bundle_root, bad_digest);
 

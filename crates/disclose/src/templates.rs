@@ -26,7 +26,9 @@ pub fn load_templates() -> Result<Vec<Template>> {
     for file in TEMPLATES_DIR.files() {
         if let Some(ext) = file.path().extension() {
             if ext == "json" {
-                let content = file.contents_utf8().ok_or_else(|| anyhow!("Invalid UTF-8"))?;
+                let content = file
+                    .contents_utf8()
+                    .ok_or_else(|| anyhow!("Invalid UTF-8"))?;
                 let template: Template = serde_json::from_str(content)?;
                 templates.push(template);
             }

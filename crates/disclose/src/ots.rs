@@ -45,8 +45,17 @@ struct VerifyResult {
     result: Option<serde_json::Value>,
 }
 
-pub fn stamp(digest_hex: &str, out: &Path, calendars: Option<&str>, timeout: Option<u64>) -> Result<()> {
-    let mut args = vec!["stamp".to_string(), "--digest".to_string(), digest_hex.to_string()];
+pub fn stamp(
+    digest_hex: &str,
+    out: &Path,
+    calendars: Option<&str>,
+    timeout: Option<u64>,
+) -> Result<()> {
+    let mut args = vec![
+        "stamp".to_string(),
+        "--digest".to_string(),
+        digest_hex.to_string(),
+    ];
     args.push("--out".to_string());
     args.push(out.to_string_lossy().to_string());
     if let Some(cal) = calendars {
