@@ -8,6 +8,7 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 use uuid::Uuid;
 
+use crate::errors::ValidationError;
 use crate::hashing::{build_hashes, hash_file, write_hashes, HashesJson};
 use crate::manifest::{
     AssistanceGrade, AssistanceInfo, AssistanceStage, DisclosureManifest, OpenTimestampsInfo, ProofItem,
@@ -247,7 +248,7 @@ fn grade_from_str(value: &str) -> Result<AssistanceGrade> {
         "moderate" => Ok(AssistanceGrade::Moderate),
         "heavy" => Ok(AssistanceGrade::Heavy),
         "full" => Ok(AssistanceGrade::Full),
-        _ => Err(anyhow!("Unknown grade")),
+        _ => Err(ValidationError::new("Unknown grade").into()),
     }
 }
 
@@ -274,7 +275,7 @@ pub fn update_meter(
     if let Some(human) = global_human {
         let ai = global_ai.unwrap_or(100 - human);
         if human + ai != 100 {
-            return Err(anyhow!("Global split must sum to 100"));
+            return Err(ValidationError::new("Global split must sum to 100").into());
         }
         manifest.assistance.global.human_percent = human;
         manifest.assistance.global.ai_percent = ai;
@@ -289,7 +290,7 @@ pub fn update_meter(
             let grade = grade_from_str(&grade_str)?;
             let approx = grade_percent(&grade);
             if !template.stages.iter().any(|stage| stage.key == key) && !allow_unknown {
-                return Err(anyhow!("Unknown stage key"));
+                return Err(ValidationError::new("Unknown stage key").into());
             }
             let label = template
                 .stages

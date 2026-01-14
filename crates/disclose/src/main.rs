@@ -4,6 +4,7 @@ use serde_json::json;
 use std::path::PathBuf;
 
 mod commands;
+mod errors;
 mod hashing;
 mod manifest;
 mod merkle;
@@ -18,6 +19,7 @@ use commands::{
     attach_proof, export_bundle, info_receipt, init_workspace, publish_workspace, stamp_workspace,
     update_meter, upgrade_receipt, verify_receipt, ExportFormat, IncludeProof,
 };
+use errors::ValidationError;
 use workspace::Workspace;
 
 #[derive(Parser)]
@@ -156,10 +158,14 @@ fn output_json(action: &str, path: &str, result: serde_json::Value) {
 }
 
 fn error_code(err: &anyhow::Error) -> i32 {
-    if err.to_string().contains("validation error")
-        || err.to_string().contains("Global split")
-        || err.to_string().contains("Unknown stage")
-    {
+    if err.downcast_ref::<ValidationError>().is_some() {
+        return 2;
+    }
+    let message = err.to_string().to_lowercase();
+    let is_validation = message.contains("validation error");
+    let is_split = message.contains("global") && message.contains("split");
+    let is_unknown_stage = message.contains("unknown") && message.contains("stage");
+    if is_validation || is_split || is_unknown_stage {
         return 2;
     }
     if err.downcast_ref::<reqwest::Error>().is_some() {
@@ -172,9 +178,10 @@ fn error_code(err: &anyhow::Error) -> i32 {
 }
 
 #[tokio::main]
-async fn main() -> Result<()> {
+async fn main() {
     let cli = Cli::parse();
-    let result = match cli.command {
+    let result: Result<()> = async {
+        match cli.command {
         Commands::Init {
             template,
             title,
@@ -379,7 +386,9 @@ async fn main() -> Result<()> {
             tui::run_tui(root)?;
             Ok(())
         }
-    };
+        }
+    }
+    .await;
 
     if let Err(err) = result {
         if !cli.quiet {
@@ -388,6 +397,4 @@ async fn main() -> Result<()> {
         let code = error_code(&err);
         std::process::exit(code);
     }
-
-    Ok(())
 }
