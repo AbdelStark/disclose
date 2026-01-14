@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { nanoid } from "nanoid";
 import Button from "@/components/ui/Button";
 import StepIndicator from "@/components/ui/StepIndicator";
 import TemplatePicker from "@/components/wizard/TemplatePicker";
@@ -32,8 +31,17 @@ const steps = [
   "Publish"
 ];
 
+const createId = () => {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID();
+  }
+  const rand = Math.random().toString(36).slice(2, 10);
+  const time = Date.now().toString(36);
+  return `${time}${rand}`;
+};
+
 const defaultDraft = (): WizardDraft => ({
-  id: `dsc_${nanoid()}`,
+  id: `dsc_${createId()}`,
   createdAt: new Date().toISOString(),
   project: {
     title: "",
@@ -167,7 +175,7 @@ export default function Wizard({
 
   const handleAddFiles = async (files: File[]) => {
     const newItems = files.map((file) => ({
-      id: nanoid(),
+      id: createId(),
       label: file.name,
       kind: "file" as const,
       path: file.name,
