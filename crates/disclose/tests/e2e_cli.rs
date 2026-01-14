@@ -4,6 +4,7 @@ use serde_json::Value;
 use std::fs;
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
+use std::path::PathBuf;
 use std::sync::mpsc;
 use std::thread;
 use std::time::{Duration, Instant};
@@ -19,6 +20,36 @@ fn disclose_cmd() -> Command {
 fn read_json(path: &std::path::Path) -> Value {
     let bytes = fs::read(path).expect("read json");
     serde_json::from_slice(&bytes).expect("parse json")
+}
+
+fn init_workspace(temp: &TempDir, name: &str) -> PathBuf {
+    let workspace = temp.path().join(name);
+    disclose_cmd()
+        .args([
+            "init",
+            "--template",
+            "code",
+            "--title",
+            "CLI E2E Disclosure",
+            "--author",
+            "Test Runner",
+            "--out",
+            workspace.to_str().expect("workspace str"),
+        ])
+        .assert()
+        .success();
+    workspace
+}
+
+fn write_proof_files(temp: &TempDir) -> (PathBuf, PathBuf) {
+    let proof_src = temp.path().join("proof-src");
+    fs::create_dir_all(&proof_src).expect("proof src");
+
+    let proof_a = proof_src.join("notes.txt");
+    let proof_b = proof_src.join("design.md");
+    fs::write(&proof_a, "alpha evidence").expect("write proof a");
+    fs::write(&proof_b, "beta evidence").expect("write proof b");
+    (proof_a, proof_b)
 }
 
 fn is_hex(value: &str, len: usize) -> bool {
@@ -138,29 +169,8 @@ fn spawn_publish_server() -> (String, mpsc::Receiver<Value>, thread::JoinHandle<
 #[ignore]
 fn cli_e2e_flow() {
     let temp = TempDir::new().expect("tempdir");
-    let workspace = temp.path().join("workspace");
-    let proof_src = temp.path().join("proof-src");
-    fs::create_dir_all(&proof_src).expect("proof src");
-
-    let proof_a = proof_src.join("notes.txt");
-    let proof_b = proof_src.join("design.md");
-    fs::write(&proof_a, "alpha evidence").expect("write proof a");
-    fs::write(&proof_b, "beta evidence").expect("write proof b");
-
-    disclose_cmd()
-        .args([
-            "init",
-            "--template",
-            "code",
-            "--title",
-            "CLI E2E Disclosure",
-            "--author",
-            "Test Runner",
-            "--out",
-            workspace.to_str().expect("workspace str"),
-        ])
-        .assert()
-        .success();
+    let workspace = init_workspace(&temp, "workspace");
+    let (proof_a, proof_b) = write_proof_files(&temp);
 
     let copy_into = workspace.join("proof");
     disclose_cmd()
@@ -333,4 +343,100 @@ fn cli_e2e_flow() {
             .expect("publication slug"),
         "e2e-test"
     );
+}
+
+#[test]
+#[ignore]
+fn cli_e2e_meter_invalid_split() {
+    let temp = TempDir::new().expect("tempdir");
+    let workspace = init_workspace(&temp, "invalid-split");
+
+    disclose_cmd()
+        .args([
+            "meter",
+            "--path",
+            workspace.to_str().expect("workspace str"),
+            "--global-human",
+            "80",
+            "--global-ai",
+            "30",
+        ])
+        .assert()
+        .failure()
+        .code(2);
+}
+
+#[test]
+#[ignore]
+fn cli_e2e_meter_unknown_stage() {
+    let temp = TempDir::new().expect("tempdir");
+    let workspace = init_workspace(&temp, "unknown-stage");
+
+    disclose_cmd()
+        .args([
+            "meter",
+            "--path",
+            workspace.to_str().expect("workspace str"),
+            "--stage",
+            "unknown=light",
+        ])
+        .assert()
+        .failure()
+        .code(2);
+}
+
+#[test]
+#[ignore]
+fn cli_e2e_verify_mismatch() {
+    let temp = TempDir::new().expect("tempdir");
+    let workspace = init_workspace(&temp, "verify-mismatch");
+    let (proof_a, proof_b) = write_proof_files(&temp);
+
+    disclose_cmd()
+        .args([
+            "attach",
+            "--path",
+            workspace.to_str().expect("workspace str"),
+            "--proof",
+            proof_a.to_str().expect("proof a str"),
+            "--proof",
+            proof_b.to_str().expect("proof b str"),
+            "--label",
+            "Evidence",
+            "--created-before-ai",
+        ])
+        .assert()
+        .success();
+
+    let hashes = read_json(&workspace.join("hashes.json"));
+    let bundle_root = hashes["bundle_root_sha256"]
+        .as_str()
+        .expect("bundle root");
+    let bad_digest = "00".repeat(32);
+    assert_ne!(bundle_root, bad_digest);
+
+    disclose_cmd()
+        .args([
+            "stamp",
+            "--path",
+            workspace.to_str().expect("workspace str"),
+            "--ots",
+            "--digest",
+            &bad_digest,
+        ])
+        .assert()
+        .success();
+
+    let receipt_path = workspace.join("receipts").join("bundle-root.ots");
+    disclose_cmd()
+        .args([
+            "verify",
+            "--path",
+            workspace.to_str().expect("workspace str"),
+            "--receipt",
+            receipt_path.to_str().expect("receipt str"),
+        ])
+        .assert()
+        .failure()
+        .code(3);
 }
