@@ -3,7 +3,8 @@ import path from "path";
 
 export default defineConfig({
   test: {
-    environment: "node"
+    environment: "node",
+    exclude: ["tests/e2e/**"]
   },
   resolve: {
     alias: {
