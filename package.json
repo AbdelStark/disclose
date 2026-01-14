@@ -7,7 +7,7 @@
     "build": "pnpm --filter web build",
     "lint": "pnpm --filter web lint",
     "test": "pnpm --filter web test",
-    "test:e2e:web": "playwright test"
+    "test:e2e:web": "pnpm --filter web prisma generate && playwright test"
   },
   "devDependencies": {
     "@playwright/test": "^1.57.0",

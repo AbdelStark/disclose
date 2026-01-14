@@ -49,8 +49,17 @@ test("web wizard end-to-end flow", async ({ page }) => {
   await expect(page.locator("p.font-mono").filter({ hasText: /[a-f0-9]{64}/ })).toHaveCount(1);
   await page.getByRole("button", { name: "Next" }).click();
 
-  await page.getByRole("button", { name: "Publish disclosure" }).click();
-  await expect(page.getByText("Published:")).toBeVisible();
+  const [publishResponse] = await Promise.all([
+    page.waitForResponse(
+      (res) => res.url().includes("/api/disclosures") && res.request().method() === "POST"
+    ),
+    page.getByRole("button", { name: "Publish disclosure" }).click()
+  ]);
+  if (!publishResponse.ok()) {
+    const responseText = await publishResponse.text();
+    throw new Error(`Publish failed: ${publishResponse.status()} ${responseText}`);
+  }
+  await expect(page.getByText("Published:")).toBeVisible({ timeout: 20_000 });
   const publicUrl = await page.getByRole("link").first().getAttribute("href");
   expect(publicUrl).toBeTruthy();
 

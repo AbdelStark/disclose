@@ -81,7 +81,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter web prisma migrate deploy
       - run: pnpm exec playwright install --with-deps
-      - run: pnpm exec playwright test
+      - run: pnpm test:e2e:web
 
   cli-e2e:
     runs-on: ubuntu-latest
