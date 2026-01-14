@@ -42,7 +42,7 @@ test("web wizard end-to-end flow", async ({ page }) => {
   await page.getByRole("button", { name: "Moderate" }).nth(1).click();
   await page.getByRole("button", { name: "Next" }).click();
 
-  await expect(page.getByText("OpenTimestamps")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "OpenTimestamps" })).toBeVisible();
   await page.getByRole("button", { name: "Next" }).click();
 
   await expect(page.getByText("Web E2E Disclosure")).toBeVisible();
