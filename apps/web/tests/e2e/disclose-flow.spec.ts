@@ -60,11 +60,15 @@ test("web wizard end-to-end flow", async ({ page }) => {
     throw new Error(`Publish failed: ${publishResponse.status()} ${responseText}`);
   }
   await expect(page.getByText("Published:")).toBeVisible({ timeout: 20_000 });
-  const publicUrl = await page.getByRole("link").first().getAttribute("href");
+  const publishData = (await publishResponse.json()) as { url?: string };
+  const publicUrl = publishData.url;
   expect(publicUrl).toBeTruthy();
 
   await page.goto(publicUrl as string);
-  await expect(page.getByText("Proof Hash Ledger")).toBeVisible();
+  await page.waitForLoadState("networkidle");
+  await expect(page.getByRole("heading", { name: "Proof Hash Ledger" })).toBeVisible({
+    timeout: 20_000
+  });
   await expect(page.getByText("Verify with CLI")).toBeVisible();
   await expect(page.getByText("Web E2E Disclosure")).toBeVisible();
 });
